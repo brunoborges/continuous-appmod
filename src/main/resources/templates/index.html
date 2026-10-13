@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Todo List</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}" href="/css/styles.css">
+</head>
+<body>
+<main class="container">
+    <header>
+        <p class="eyebrow">ONE TASK AT A TIME</p>
+        <h1>My Todo List</h1>
+        <p>Add a task, mark it done, and make room for what comes next.</p>
+    </header>
+
+    <form class="add-form" th:action="@{/todos}" th:object="${todoForm}" method="post">
+        <label for="title">What needs to get done?</label>
+        <div class="input-row">
+            <input id="title" type="text" th:field="*{title}" maxlength="200" required
+                   placeholder="e.g. Read a chapter"
+                   th:attr="aria-invalid=${#fields.hasErrors('title')},aria-describedby=${#fields.hasErrors('title') ? 'title-error' : null}">
+            <button type="submit">Add task</button>
+        </div>
+        <p id="title-error" class="error" role="alert"
+           th:if="${#fields.hasErrors('title')}" th:errors="*{title}">Title error</p>
+    </form>
+
+    <section aria-label="Tasks">
+        <p class="empty-state" th:if="${#lists.isEmpty(todos)}">No tasks yet. Add your first task above.</p>
+        <ul class="todo-list" th:unless="${#lists.isEmpty(todos)}">
+            <li class="todo-item" th:each="todo : ${todos}">
+                <span class="todo-title" th:classappend="${todo.completed} ? 'completed' : ''"
+                      th:text="${todo.title}">Task title</span>
+                <span class="status" th:text="${todo.completed} ? 'Done' : 'To do'">To do</span>
+                <div class="actions">
+                    <form th:action="@{/todos/{id}/toggle(id=${todo.id})}" method="post">
+                        <button class="secondary" type="submit"
+                                th:text="${todo.completed} ? 'Undo' : 'Complete'"
+                                th:attr="aria-label=${(todo.completed ? 'Mark incomplete: ' : 'Complete: ') + todo.title}">Complete</button>
+                    </form>
+                    <form th:action="@{/todos/{id}/delete(id=${todo.id})}" method="post">
+                        <button class="danger" type="submit"
+                                th:attr="aria-label=${'Delete: ' + todo.title}">Delete</button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </section>
+    <footer>Sample app: tasks are stored in an in-memory H2 database and reset when the app restarts.</footer>
+</main>
+</body>
+</html>
