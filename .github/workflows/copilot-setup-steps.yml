@@ -34,11 +34,9 @@ jobs:
             8
           overwrite-settings: false
 
-      - name: Install Maven 3
+      - name: Verify runner-provided Maven 3
         shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes maven
           mvn --version | tee "$RUNNER_TEMP/maven-version.txt"
           grep -Eq '^Apache Maven 3\.' "$RUNNER_TEMP/maven-version.txt"
 

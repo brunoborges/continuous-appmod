@@ -19,7 +19,7 @@ Update these instructions as the implementation evolves. Use the implementation 
 
 ## Copilot cloud agent environment
 
-`.github/workflows/copilot-setup-steps.yml` installs Maven 3 and Eclipse Temurin JDKs 8, 11, 17, 21, and 25. Java 8 is the default `JAVA_HOME` and `PATH` JDK for the current baseline. All five JDKs are registered in `~/.m2/toolchains.xml` with vendor `temurin`, major-version values (including `8`, not `1.8`), and IDs such as `temurin_21`.
+`.github/workflows/copilot-setup-steps.yml` uses Maven 3 preinstalled on the GitHub-hosted Ubuntu runner and installs Eclipse Temurin JDKs 8, 11, 17, 21, and 25. Java 8 is the default `JAVA_HOME` and `PATH` JDK for the current baseline. All five JDKs are registered in `~/.m2/toolchains.xml` with vendor `temurin`, major-version values (including `8`, not `1.8`), and IDs such as `temurin_21`.
 
 Use toolchain-aware Maven plugins when selecting a different build JDK. To change Maven's own runtime, set `JAVA_HOME` to the selected toolchain's `jdkHome` and prepend `$JAVA_HOME/bin` to `PATH`. Do not change the application's Java target just because newer JDKs are installed.
 

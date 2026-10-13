@@ -13,7 +13,8 @@ framework.
 ## Copilot cloud agent environment
 
 `.github/workflows/copilot-setup-steps.yml` installs Eclipse Temurin JDKs
-**8, 11, 17, 21, and 25** and Maven **3** on an Ubuntu runner. Java 8 is the
+**8, 11, 17, 21, and 25** and uses Maven **3** preinstalled on the
+GitHub-hosted Ubuntu runner. Java 8 is the
 default `JAVA_HOME` and `PATH` JDK to preserve the application's legacy baseline.
 The setup verifies Maven's major version, every registered JDK's `java` and
 `javac`, and the default JDK.
