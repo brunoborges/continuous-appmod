@@ -27,11 +27,11 @@ jobs:
           distribution: temurin
           # The last JDK becomes the default for JAVA_HOME and PATH.
           java-version: |
+            8
             11
-            17
             21
             25
-            8
+            17
           overwrite-settings: false
 
       - name: Verify runner-provided Maven 3
@@ -73,9 +73,9 @@ jobs:
                   match = re.search(r'(?:version\s+"|javac\s+)(?:1\.)?(\d+)', result.stdout)
                   if not match or match.group(1) != version:
                       raise RuntimeError("Incorrect " + tool + " version for JDK " + version)
-              if version == "8":
+              if version == "17":
                   if Path(os.environ["JAVA_HOME"]).resolve() != home.resolve():
-                      raise RuntimeError("JAVA_HOME must default to JDK 8")
+                      raise RuntimeError("JAVA_HOME must default to JDK 17")
                   for tool in ("java", "javac"):
                       if Path(shutil.which(tool)).resolve() != (home / "bin" / tool).resolve():
-                          raise RuntimeError(tool + " on PATH must default to JDK 8")
+                          raise RuntimeError(tool + " on PATH must default to JDK 17")
