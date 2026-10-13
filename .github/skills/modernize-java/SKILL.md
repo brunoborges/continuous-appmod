@@ -1,9 +1,17 @@
 ---
 name: 'modernize-java'
-description: 'Upgrades Java projects to target versions (e.g., Java 25, Spring Boot 3.5) via incremental planning and execution.'
+description: 'Plan and execute incremental Java, Spring Boot, and related dependency upgrades to user-specified target versions. Use when asked to modernize or upgrade a Java application, including from a general-purpose agent.'
 ---
 
-You are an expert Java upgrade agent. **Task**: Upgrade to user-specified target versions by (1) generating an incremental plan and (2) executing it per the rules below.
+Use this skill in the current agent session to upgrade to user-specified target versions by (1) generating an incremental plan and (2) executing it per the rules below. Loading the skill does not change the active agent or model and does not require a specialist handoff.
+
+## Entry Requirements
+
+- Read `.github/copilot-instructions.md` and follow its **Modernization audit evidence** requirements after every modernization MCP call, before and after edits, and for validation and the final report or PR description.
+- Discover the configured App Modernization MCP tools and their actual schemas before calling them. The `#appmod-*` names below identify MCP tools, not shell commands; use the names and arguments exposed by the current host.
+- Record the active agent, loaded skill, and required tool availability. If the server or a required tool is unavailable, report the limitation explicitly and stop the affected workflow; do not fabricate responses or claim an MCP-guided upgrade.
+- Do not call `appmod-generate-upgrade-plan` or `appmod-redirect-to-upgrade-agent`. These request a specialist handoff rather than generating a plan. Generate the plan here using the workflow below and the available MCP tools; do not delegate just to use this skill.
+- Preserve explicit user targets and constraints. Do not upgrade unrelated frameworks or dependencies unless required for compatibility. If a vulnerability fix would violate a pinned target, report the conflict and obtain approval before changing that target.
 
 ## Rules
 
@@ -46,7 +54,7 @@ After completing changes in each step, review code changes per the **Review Code
 - **Wrapper preference**: Use Maven Wrapper (`mvnw`/`mvnw.cmd`) or Gradle Wrapper (`gradlew`/`gradlew.bat`) when present in the project root, unless user explicitly specifies otherwise. This ensures consistent build tool versions across environments.
 - **Version control via tool**: 🛑 NEVER use direct `git` commands — ONLY use `#appmod-version-control` for ALL version control operations. **ALWAYS pass `sessionId: <SESSION_ID>`**. When `GIT_AVAILABLE=false`, skip ALL version control operations and use `N/A` for branch/commit placeholders.
 - **Version control timing**: `#appmod-version-control` requires `SESSION_ID` which is only available after Phase 1 (Precheck) succeeds. Do NOT use `#appmod-version-control` during Precheck. Git availability detection is deferred to Phase 2 Initialize.
-- **Template compliance**: For `plan.md`, follow the **Plan Format Specification** below and write the complete file in a **single `create_file` call** — do NOT read a template or use `insert_edit_into_file` during plan generation. For `summary.md`, read `summary.template.md` (in the session directory) as a spec, then write `summary.md` as a new file using `create_file`.
+- **Template compliance**: For `plan.md`, follow the **Plan Format Specification** below and write the complete file in a single file-creation operation using the host's available editing tool (for example, `apply_patch` or `create_file`). For `summary.md`, read `summary.template.md` (in the session directory) as a spec, then write `summary.md` as a new file using the available editing tool. If the template is unavailable, report that limitation and use the plan, observed results, and repository audit requirements; do not invent template contents.
 - **Uninterrupted run**: Complete each phase fully without pausing for user input, except for the mandatory user confirmation after plan generation (Phase 3).
 - **User input**: Prefer the ask tool (`#askQuestions`, `#ask_user`, or `#ask_questions`) when available to collect user input (e.g., choices, confirmations). Fall back to plain-text prompts only when none is available.
 
@@ -57,22 +65,23 @@ Call `#appmod-report-event` immediately at each key milestone. **NO skipping. NO
 - **When**: Report at every milestone defined in the Workflow phases — do not wait until the end of a phase.
 - **Details**: Pass `details` for `precheckCompleted` (on both success and failure — see Phase 1), `environmentSetup`, `upgradeStepStarted`, and `upgradeStepCompleted`.
 - **Status values**: `"succeeded"` | `"failed"` (must include `message`) | `"skipped"` (must include `message`).
-- **SILENT**: Event reporting is internal telemetry only — NEVER mention `#appmod-report-event` calls, event names, or reporting status in user-facing messages.
+- **Reporting vs. evidence**: Avoid narrating routine telemetry in progress messages. Still record every MCP call, including event-reporting calls, in the repository's required sanitized audit evidence. A telemetry acknowledgment is not application analysis or proof of an upgrade.
 
 ### Efficiency
 
 - **Targeted reads**: Use `grep` over full file reads; read sections, not entire files.
 - **Quiet commands**: Use `-q`, `--quiet` for build/test when appropriate.
-- **Single write for plan.md**: Generate the complete `plan.md` in one `create_file` call after gathering all information. Do NOT make multiple edits.
+- **Single write for plan.md**: Generate the complete `plan.md` in one file-creation operation after gathering all information. Do NOT make multiple edits.
 
 ### Session ID Consistency (CRITICAL)
 
 - `SESSION_ID` is generated in Phase 1 (Precheck) on success. Use this **exact** ID for ALL subsequent tool calls — never fabricate or change it.
 
-### Branch Handling (Delegation-Aware)
+### Branch Handling
 
-- **IF a `BRANCH` value is provided in the delegation prompt** (e.g., when invoked by execution-coordinator): the execution-coordinator has already created the branch, checked it out, and handled uncommitted changes. You are already on `<BRANCH>`. Use it as the working branch instead of `appmod/java-upgrade-<SESSION_ID>`. Do NOT run `git checkout`, `git switch`, or any direct git command. Do NOT call `#appmod-version-control` with action `stashChanges` or `createBranch`.
-- **OTHERWISE (no `BRANCH` provided, standalone invocation)**: follow the original logic — stash uncommitted changes and create `appmod/java-upgrade-<SESSION_ID>` (or the branch defined in `plan.md`).
+- Use the current task branch, whether this skill is loaded by a general-purpose agent or another agent. Record it via `#appmod-version-control` after Precheck succeeds.
+- Do not switch branches, create a replacement branch, or stash existing changes merely because the skill was loaded. Preserve and integrate user changes; ask if they conflict with the upgrade.
+- Do not assume a coordinator prepared the workspace. If the user explicitly requests another branch, obtain any necessary approval and use the MCP version-control tool. Never fabricate a branch or commit ID.
 
 ### Intermediate Version Strategy
 
@@ -89,7 +98,7 @@ LLM training data may be outdated. **Never reject a target version solely based 
 
 ## Plan Format Specification
 
-Generate the **complete `plan.md`** in a single `create_file` call to `.github/modernize/java-upgrade/<SESSION_ID>/plan.md`. Structure:
+Generate the **complete `plan.md`** in a single file-creation operation to `.github/modernize/java-upgrade/<SESSION_ID>/plan.md`. Structure:
 
 ### Plan Header
 
@@ -117,7 +126,7 @@ User-specified constraints in bullet points. Always include:
 
     ## Options
 
-    - Working branch: appmod/java-upgrade-<SESSION_ID>
+    - Working branch: <current task branch, or N/A if GIT_AVAILABLE=false>
     - Run tests before and after the upgrade: true
 
 ### Section: Upgrade Goals
@@ -166,7 +175,7 @@ Format: `Step N: <Title>` with Rationale, Changes to Make (reference Impact Anal
 
 | Category            | Scenario                        | Action (use the ask tool (`#askQuestions`, `#ask_user`, or `#ask_questions`) when available and appropriate)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 |---------------------|---------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Unsupported Project | Not a Java project              | This path should not be reached — the upgrade agent is only invoked for Java projects. Do NOT call `#appmod-report-event`. Simply STOP and inform the user: "This project does not appear to be a Java project. The Java upgrade agent only supports Java projects."                                                                                                                                                                                                                                                                                                                                      |
+| Unsupported Project | Not a Java project              | Do NOT call `#appmod-report-event`. Stop this workflow and inform the user that the modernize-java skill only supports Java projects. The current agent can still handle other tasks without this skill. |
 | Unsupported Project | Not a Maven/Gradle project      | Check for alternative build systems: look for `build.xml` (Ant), `BUILD`/`BUILD.bazel` (Bazel), or other build files. If detected, call `#appmod-report-event` with details, then inform the user: "Detected [Ant/Bazel/other] build system. Maven and Gradle are fully supported; [Ant/Bazel/other] support is experimental and results may vary." Attempt to continue with best-effort analysis. If no recognizable build system is found, call `#appmod-report-event`, then STOP with error listing supported build systems (Maven, Gradle).                                                           |
 | Invalid Goal        | Missing target version          | Do NOT call `#appmod-report-event` yet. Instead, analyze project dependencies (read `pom.xml`/`build.gradle` to detect current Java version, Spring Boot version, and other key deps), derive feasible upgrade options (e.g., Java 17, Java 21, Java 25, Spring Boot 3.2, Spring Boot 3.5, Spring Boot 4.0), and use the ask tool (`#askQuestions`, `#ask_user`, or `#ask_questions`) to present those options as selectable choices for the user to pick the desired target(s). Only report `precheckCompleted` (succeeded or failed) after the user has selected a target or the interaction concludes. |
 | Invalid Goal        | Incompatible target combination | Call `#appmod-report-event`, then STOP and explain incompatibility                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -189,7 +198,7 @@ Examples:
 
 1. Call tool `#appmod-report-event(sessionId, event: "planGenerationStarted", phase: "plan", status: "succeeded")` — **FIRST action, before any file or version control operations**
 2. **Detect version control availability**: Use `#appmod-version-control(sessionId: <SESSION_ID>, workspacePath, action: "checkStatus")` to detect if git is available. If the response indicates version control is unavailable, set `GIT_AVAILABLE=false`. **Do not ask the user. Do not report failure.**
-3. If `GIT_AVAILABLE=true` AND no `BRANCH` was provided in the delegation prompt: Use `#appmod-version-control(sessionId: <SESSION_ID>, workspacePath, action: "stashChanges", stashMessage: "java-upgrade-precheck-<SESSION_ID>")` to stash any uncommitted changes. If `BRANCH` was provided, the coordinator already stashed — skip this step.
+3. Record the current task branch and existing changes from the status response. Follow **Branch Handling**; do not stash changes or create a branch by default.
 4. **Project environment**: Extract user-specified guidelines. Detect all available JDKs/build tools via `#appmod-list-jdks(sessionId)`, `#appmod-list-mavens(sessionId)`. Detect wrapper presence and read wrapper properties if present. Check build tool version compatibility with target JDK — flag incompatible versions.
 5. **Technology stack analysis**: Identify core tech stack across **ALL modules** — direct deps, upgrade-critical transitive deps, build tools, and build plugins (`maven-compiler-plugin`, `maven-surefire-plugin`, `maven-war-plugin`, etc.). Flag EOL dependencies. Determine compatibility against upgrade goals.
 6. **Compatibility scan**: Perform a comprehensive scan for all upgrade-blocking patterns.
@@ -218,7 +227,7 @@ Examples:
 3. Finalize Available Tools based on the planned step sequence; determine which JDK versions are required and at which steps; mark missing ones as `<TO_BE_INSTALLED>`, mark build tools needing upgrade as `<TO_BE_UPGRADED>` (including wrapper version if applicable). **Exception — base (current) JDK**: If the project's current JDK version is not found via `#appmod-list-jdks`, do **not** mark it as `<TO_BE_INSTALLED>`. The base JDK is only needed for the optional baseline step. Instead, note it as "not available (baseline will be skipped)".
 4. Design upgrade steps — group related changes so each step leaves the project in a compilable state. No step should expect compilation failure. Reference Impact Analysis items rather than repeating details.
 5. **Self-verify completeness**: Every finding from the Compatibility Scan must appear in the Impact Analysis section. Every item in Impact Analysis must be addressed by an Upgrade Step. If gaps are found, go back and fill them.
-6. **Write complete `plan.md`** to `.github/modernize/java-upgrade/<SESSION_ID>/plan.md` using `create_file` — follow the **Plan Format Specification** above. Include all sections (Available Tools, Guidelines, Options, Upgrade Goals, Technology Stack, Derived Upgrades, Impact Analysis, Upgrade Steps) in a single write. If `GIT_AVAILABLE=false`, use "N/A" for branch/commit and include a notice about version control.
+6. **Write complete `plan.md`** to `.github/modernize/java-upgrade/<SESSION_ID>/plan.md` using the available editing tool — follow the **Plan Format Specification** above. Include all sections (Available Tools, Guidelines, Options, Upgrade Goals, Technology Stack, Derived Upgrades, Impact Analysis, Upgrade Steps) in a single write. If `GIT_AVAILABLE=false`, use "N/A" for branch/commit and include a notice about version control.
 7. Verify all placeholders are filled, check for missing coverage/infeasibility/limitations. If issues found, rewrite the file.
 8. Call tool `#appmod-report-event(sessionId, event: "planReviewed", phase: "plan", status: "succeeded")`
 
@@ -232,8 +241,7 @@ Examples:
 
 1. Read `.github/modernize/java-upgrade/<SESSION_ID>/plan.md` for "Options"
 2. **Branch setup**:
-   - **If `BRANCH` was provided in the delegation prompt**: you are already on `<BRANCH>` (the coordinator created and checked it out). Do NOT run `git checkout`, `git switch`, stash, or createBranch. You MAY call `#appmod-version-control(sessionId: <SESSION_ID>, workspacePath, action: "checkStatus")` only to record the current branch — do not switch based on the result.
-   - **Otherwise**: Use `#appmod-version-control(sessionId: <SESSION_ID>, workspacePath, action: "stashChanges")` to stash any uncommitted changes. Then use `#appmod-version-control(sessionId: <SESSION_ID>, workspacePath, action: "createBranch", branchName: "appmod/java-upgrade-<SESSION_ID>")` (or the branch defined in `plan.md`).
+   - Use `#appmod-version-control(sessionId: <SESSION_ID>, workspacePath, action: "checkStatus")` to confirm the current branch matches the approved plan. Follow **Branch Handling**; do not switch, stash, or create a branch by default. If it no longer matches, stop and clarify before editing.
    - If version control is unavailable (`GIT_AVAILABLE=false`), log warning in `plan.md` that changes are not version-controlled.
 3. Call tool `#appmod-report-event(sessionId, event: "planExecutionStarted", phase: "execute", status: "succeeded")`
 
@@ -291,7 +299,7 @@ Execute the "CVE Validation & Fix" step from the plan.
 1. **Collect test coverage**: Run `mvn clean verify -Djacoco.skip=false` or equivalent; record metrics
 2. Generate `summary.md`:
     - **Read spec**: Read `summary.template.md` (in the session directory) — it contains the format specification with rules and samples.
-    - **Write**: Collect all data from build output, CVE scan results, and coverage metrics. Resolve OS username (`$env:USERNAME` / `$USER` / `whoami`). Write `summary.md` as a new file using `create_file` per **Template compliance**.
+    - **Write**: Collect observed build results, CVE scan results, and available coverage metrics. Write `summary.md` as a new file using the available editing tool per **Template compliance**. Do not collect personal information or invent missing metrics.
     - **Self-check**: Scan the written `summary.md` for HTML comments, `<placeholder>` tokens, empty bullets, unfilled table cells, bare headings without content, duplicate section headings. Fix any issues found.
-3. Clean up temp files; remove HTML comments from all `.md` files
+3. Clean up only temporary files created by this upgrade; remove unfilled template comments from generated plan/summary files, not unrelated Markdown files.
 4. → `#appmod-report-event(sessionId, event: "summaryGenerated", phase: "summarize", status: "succeeded", message: "<1-2 sentence summary>")`

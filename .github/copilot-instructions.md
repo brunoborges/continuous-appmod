@@ -51,13 +51,13 @@ Click **Save MCP configuration**. This repository-level configuration is shared 
 
 The package enables telemetry by default. To opt out, add `"env": {"APPMOD_MCP_COLLECT_TELEMETRY": "false"}` to the server entry.
 
-### Java upgrade custom agent
+### Java modernization skill
 
-Java upgrades require both the configured MCP server and the `modernize-java` custom agent in `.github/agents/modernize-java.agent.md`, following [Microsoft's cloud-agent setup guide](https://learn.microsoft.com/en-us/azure/developer/java/migration/github-copilot-app-modernization-for-java-coding-agent). Merge the profile into the default branch and select **modernize-java** in GitHub's **Agents** panel when starting an upgrade. The profile adapts the published workflow to preserve the task branch, user constraints, and this repository's audit requirements; it inherits the session's model.
+Java upgrades use the configured MCP server and the `modernize-java` repository skill in `.github/skills/modernize-java/SKILL.md`. Merge the skill into the default branch for cloud-agent use. Any skill-capable agent, including the general-purpose agent, can load it and perform the upgrade in the current session without selecting a custom agent. See [GitHub's agent skills guide](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/add-skills). The skill adapts [Microsoft's Java modernization workflow](https://learn.microsoft.com/en-us/azure/developer/java/migration/github-copilot-app-modernization-for-java-coding-agent) to preserve the task branch, user constraints, plan approval, and this repository's audit requirements.
 
-For a Java upgrade request handled by a different agent, delegate to `modernize-java` using the available custom-agent mechanism, passing the original goal and constraints. If that mechanism is unavailable, explain that the user must start a session with **modernize-java** selected; do not silently perform an independent upgrade. Inside `modernize-java`, generate the plan using its defined workflow and the MCP tools. Do not call `appmod-generate-upgrade-plan` or `appmod-redirect-to-upgrade-agent`: these request a specialist handoff, do not themselves generate a plan, and must not cause recursive delegation.
+For Java upgrade requests, load `modernize-java` using the host's skill mechanism. If it is not listed but repository files are accessible, read `.github/skills/modernize-java/SKILL.md` and follow it directly. Do not delegate to a specialist solely to run this workflow. If the skill cannot be loaded or read, report the limitation instead of silently performing an independent upgrade. Generate the plan using the skill's workflow and available MCP tools. Do not call `appmod-generate-upgrade-plan` or `appmod-redirect-to-upgrade-agent`: these request a specialist handoff and do not themselves generate a plan.
 
-Configuring the MCP server alone does not register the custom agent. A successful redirect-tool response is not proof that a specialist exists or ran. Record the active agent and confirm required tool availability before proceeding.
+The skill does not configure the MCP server or make unavailable tools accessible, and it does not change the active agent or model. Record the active agent and loaded skill, and confirm required tool availability before proceeding. A successful redirect-tool response is not proof that an upgrade ran.
 
 ### Modernization audit evidence
 
