@@ -10,6 +10,27 @@ framework.
 - JDK 8 (or a newer JDK capable of compiling Java 8 source)
 - Maven 3.6.3 or newer
 
+## Copilot cloud agent environment
+
+`.github/workflows/copilot-setup-steps.yml` installs Eclipse Temurin JDKs
+**8, 11, 17, 21, and 25** and Maven **3** on an Ubuntu runner. Java 8 is the
+default `JAVA_HOME` and `PATH` JDK to preserve the application's legacy baseline.
+The setup verifies Maven's major version, every registered JDK's `java` and
+`javac`, and the default JDK.
+
+`actions/setup-java` registers all five JDKs in `~/.m2/toolchains.xml`, with
+vendor `temurin`, versions `8`, `11`, `17`, `21`, and `25`, and IDs such as
+`temurin_21`. Toolchain-aware Maven plugins can select these JDKs using the
+Maven Toolchains Plugin; installing them does not change this application's
+Java target or automatically enable toolchain selection in `pom.xml`.
+To run Maven itself on another installed JDK, set `JAVA_HOME` to that
+toolchain's `jdkHome` and prepend `$JAVA_HOME/bin` to `PATH`.
+
+Merge the workflow into `main` to enable it for cloud-agent sessions.
+Workflow changes are checked on pull requests and pushes to `main`; it can
+also be run manually from **Actions > Copilot Setup Steps** once merged.
+See [GitHub's environment customization guide](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/customize-the-agent-environment).
+
 ## Run
 
 ```sh

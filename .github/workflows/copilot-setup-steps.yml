@@ -1,0 +1,83 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install JDKs and configure Maven toolchains
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          # The last JDK becomes the default for JAVA_HOME and PATH.
+          java-version: |
+            11
+            17
+            21
+            25
+            8
+          overwrite-settings: false
+
+      - name: Install Maven 3
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes maven
+          mvn --version | tee "$RUNNER_TEMP/maven-version.txt"
+          grep -Eq '^Apache Maven 3\.' "$RUNNER_TEMP/maven-version.txt"
+
+      - name: Verify JDKs and Maven toolchains
+        shell: python
+        run: |
+          import os
+          from pathlib import Path
+          import re
+          import shutil
+          import subprocess
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse(Path.home() / ".m2" / "toolchains.xml").getroot()
+          for version in ("8", "11", "17", "21", "25"):
+              entries = [
+                  entry for entry in root.findall("{*}toolchain")
+                  if entry.findtext("{*}type") == "jdk"
+                  and entry.findtext("{*}provides/{*}id") == "temurin_" + version
+              ]
+              if len(entries) != 1:
+                  raise RuntimeError("Expected one Temurin toolchain for JDK " + version)
+              entry = entries[0]
+              if entry.findtext("{*}provides/{*}version") != version:
+                  raise RuntimeError("Incorrect toolchain version for JDK " + version)
+              home = Path(entry.findtext("{*}configuration/{*}jdkHome"))
+              for tool in ("java", "javac"):
+                  result = subprocess.run(
+                      [str(home / "bin" / tool), "-version"],
+                      check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      text=True,
+                  )
+                  print(result.stdout, end="")
+                  match = re.search(r'(?:version\s+"|javac\s+)(?:1\.)?(\d+)', result.stdout)
+                  if not match or match.group(1) != version:
+                      raise RuntimeError("Incorrect " + tool + " version for JDK " + version)
+              if version == "8":
+                  if Path(os.environ["JAVA_HOME"]).resolve() != home.resolve():
+                      raise RuntimeError("JAVA_HOME must default to JDK 8")
+                  for tool in ("java", "javac"):
+                      if Path(shutil.which(tool)).resolve() != (home / "bin" / tool).resolve():
+                          raise RuntimeError(tool + " on PATH must default to JDK 8")
