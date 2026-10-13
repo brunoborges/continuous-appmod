@@ -1,21 +1,21 @@
 # Spring Boot Todo Webapp
 
-A sample todo web application using **Spring Boot 2.7.18**, **Java 8**,
+A sample todo web application using **Spring Boot 2.7.18**, **Java 11**,
 **Spring MVC**, **Thymeleaf**, and **Spring Data JPA / Hibernate** with an
 embedded **H2** database. It renders HTML on the server without a JavaScript
 framework.
 
 ## Requirements
 
-- JDK 8 (or a newer JDK capable of compiling Java 8 source)
+- JDK 11 (the build and runtime version used in CI)
 - Maven 3.6.3 or newer
 
 ## Copilot cloud agent environment
 
 `.github/workflows/copilot-setup-steps.yml` installs Eclipse Temurin JDKs
 **8, 11, 17, 21, and 25** and uses Maven **3** preinstalled on the
-GitHub-hosted Ubuntu runner. Java 8 is the
-default `JAVA_HOME` and `PATH` JDK to preserve the application's legacy baseline.
+GitHub-hosted Ubuntu runner. Java 11 is the
+default `JAVA_HOME` and `PATH` JDK, matching the application's build and runtime.
 The setup verifies Maven's major version, every registered JDK's `java` and
 `javac`, and the default JDK.
 
@@ -55,10 +55,12 @@ appropriate for this ephemeral sample, not for a persistent production database.
 ## Test and package
 
 ```sh
-mvn test
-mvn package
+mvn verify
 java -jar target/todo-webapp-0.0.1-SNAPSHOT.jar
 ```
+
+Run these commands with JDK 11 selected in `JAVA_HOME` and on `PATH`.
+The Maven build targets Java 11 bytecode; Java 8 can no longer build or run it.
 
 Tests run against H2 and Hibernate and cover the todo lifecycle, entity
 persistence and reloads, committed service transactions, input validation,
@@ -70,7 +72,7 @@ afterward.
 
 The GitHub Actions workflow in `.github/workflows/ci.yml` runs
 `mvn --batch-mode --no-transfer-progress verify` on pushes and pull requests
-to `main`. It uses Temurin 8 on Ubuntu, caches Maven dependencies, and builds
+to `main`. It uses Temurin 11 on Ubuntu, caches Maven dependencies, and builds
 the executable JAR while running all tests. It can also be started manually
 from the repository's Actions tab. No deployment is configured.
 
@@ -91,7 +93,7 @@ from the repository's Actions tab. No deployment is configured.
 All state-changing routes use POST and successful changes redirect to the
 home page to avoid accidental resubmission on refresh.
 
-This intentionally uses the requested legacy stack. Spring Boot 2.x and Java 8
+This intentionally retains the legacy framework stack. Spring Boot 2.x and Java 11
 are not recommended defaults for new production systems. This sample has no
 authentication or CSRF protection and is intended for local learning, not
 public deployment.
