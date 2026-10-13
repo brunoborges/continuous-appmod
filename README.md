@@ -66,6 +66,14 @@ missing tasks, escaped HTML, rendered Thymeleaf pages, and static CSS. Tests
 roll back database changes, except the commit test, which deletes its task
 afterward.
 
+## Continuous integration
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs
+`mvn --batch-mode --no-transfer-progress verify` on pushes and pull requests
+to `main`. It uses Temurin 8 on Ubuntu, caches Maven dependencies, and builds
+the executable JAR while running all tests. It can also be started manually
+from the repository's Actions tab. No deployment is configured.
+
 ## Structure
 
 - `TodoController`: MVC routes and form validation.
