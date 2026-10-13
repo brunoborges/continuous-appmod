@@ -32,6 +32,24 @@ Workflow changes are checked on pull requests and pushes to `main`; it can
 also be run manually from **Actions > Copilot Setup Steps** once merged.
 See [GitHub's environment customization guide](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/customize-cloud-agent/customize-the-agent-environment).
 
+### Java modernization agent
+
+Java upgrades use the **modernize-java** custom agent in
+`.github/agents/modernize-java.agent.md` together with Microsoft's modernization
+MCP server. Follow [Microsoft's cloud-agent setup guide](https://learn.microsoft.com/en-us/azure/developer/java/migration/github-copilot-app-modernization-for-java-coding-agent)
+and the MCP configuration in `.github/copilot-instructions.md`.
+The MCP server must be saved in repository settings by an administrator;
+checking in the agent profile does not configure the server.
+
+Once the profile is merged into `main`, select **modernize-java** in GitHub's
+**Agents** panel and specify the requested versions and constraints, for example:
+`Upgrade to Java 17 while retaining Spring Boot 2.7.18`.
+The profile follows Microsoft's documented planning, confirmation, execution,
+and validation lifecycle, adapted to preserve the cloud-agent task branch,
+honor user constraints, and retain sanitized modernization evidence in the PR.
+It inherits the session's model. MCP configuration alone does not enable the
+specialist, and a redirect-tool success does not prove an upgrade was performed.
+
 ## Run
 
 ```sh

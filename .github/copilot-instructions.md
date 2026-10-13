@@ -51,6 +51,14 @@ Click **Save MCP configuration**. This repository-level configuration is shared 
 
 The package enables telemetry by default. To opt out, add `"env": {"APPMOD_MCP_COLLECT_TELEMETRY": "false"}` to the server entry.
 
+### Java upgrade custom agent
+
+Java upgrades require both the configured MCP server and the `modernize-java` custom agent in `.github/agents/modernize-java.agent.md`, following [Microsoft's cloud-agent setup guide](https://learn.microsoft.com/en-us/azure/developer/java/migration/github-copilot-app-modernization-for-java-coding-agent). Merge the profile into the default branch and select **modernize-java** in GitHub's **Agents** panel when starting an upgrade. The profile adapts the published workflow to preserve the task branch, user constraints, and this repository's audit requirements; it inherits the session's model.
+
+For a Java upgrade request handled by a different agent, delegate to `modernize-java` using the available custom-agent mechanism, passing the original goal and constraints. If that mechanism is unavailable, explain that the user must start a session with **modernize-java** selected; do not silently perform an independent upgrade. Inside `modernize-java`, generate the plan using its defined workflow and the MCP tools. Do not call `appmod-generate-upgrade-plan` or `appmod-redirect-to-upgrade-agent`: these request a specialist handoff, do not themselves generate a plan, and must not cause recursive delegation.
+
+Configuring the MCP server alone does not register the custom agent. A successful redirect-tool response is not proof that a specialist exists or ran. Record the active agent and confirm required tool availability before proceeding.
+
 ### Modernization audit evidence
 
 For modernization tasks, make the MCP server's contribution distinguishable from Copilot's own work. GitHub's cloud-agent engine logs tool names and execution status, but those entries alone do not show the returned guidance or prove that it informed an upgrade.
